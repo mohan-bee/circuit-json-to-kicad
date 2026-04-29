@@ -56,11 +56,7 @@ export function getLibraryId(
     // Otherwise it's a custom symbol
     return `Custom:${schematicComp.symbol_name}`
   }
-  if (
-    sourceComp.ftype === "simple_pin_header" ||
-    sourceComp.ftype === "simple_pinout" ||
-    sourceComp.ftype === "simple_connector"
-  ) {
+  if (sourceComp.ftype === "simple_pin_header") {
     return `Device:generic_chip_${schematicComp.source_component_id}`
   }
 

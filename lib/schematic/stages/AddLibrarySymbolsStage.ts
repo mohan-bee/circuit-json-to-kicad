@@ -145,7 +145,10 @@ export class AddLibrarySymbolsStage extends ConverterStage<
 
     const symbolName =
       schematicComponent.symbol_name ||
-      (sourceComp.ftype === "simple_chip"
+      (sourceComp.ftype === "simple_chip" ||
+      sourceComp.ftype === "simple_pin_header" ||
+      sourceComp.ftype === "simple_pinout" ||
+      sourceComp.ftype === "simple_connector"
         ? `generic_chip_${schematicComponent.source_component_id}`
         : null)
 
@@ -155,7 +158,11 @@ export class AddLibrarySymbolsStage extends ConverterStage<
     if (!symbolData) return null
 
     const libId = getLibraryId(sourceComp, schematicComponent, cadComponent)
-    const isChip = sourceComp.ftype === "simple_chip"
+    const isChip =
+      sourceComp.ftype === "simple_chip" ||
+      sourceComp.ftype === "simple_pin_header" ||
+      sourceComp.ftype === "simple_pinout" ||
+      sourceComp.ftype === "simple_connector"
 
     // Get footprint name for symbol-footprint linkage using ergonomic naming
     const footprintName = getKicadCompatibleComponentName(

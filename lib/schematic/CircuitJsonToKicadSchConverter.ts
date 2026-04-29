@@ -12,6 +12,8 @@ import { AddSheetInstancesStage } from "./stages/AddSheetInstancesStage"
 import { getSchematicBoundsAndCenter } from "./getSchematicBoundsAndCenter"
 import { selectSchematicPaperSize } from "./selectSchematicPaperSize"
 
+const DEFAULT_SCHEMATIC_SCALE_FACTOR = 15
+
 export class CircuitJsonToKicadSchConverter {
   ctx: ConverterContext
 
@@ -25,7 +27,7 @@ export class CircuitJsonToKicadSchConverter {
   }
 
   constructor(circuitJson: CircuitJson) {
-    const CIRCUIT_JSON_SCALE_FACTOR = 15
+    const kicadSchematicScaleFactor = DEFAULT_SCHEMATIC_SCALE_FACTOR
 
     const db = cju(circuitJson)
 
@@ -33,9 +35,9 @@ export class CircuitJsonToKicadSchConverter {
 
     // Calculate the size of the schematic in KiCad coordinates (mm)
     const schematicWidthMm =
-      (bounds.maxX - bounds.minX) * CIRCUIT_JSON_SCALE_FACTOR
+      (bounds.maxX - bounds.minX) * kicadSchematicScaleFactor
     const schematicHeightMm =
-      (bounds.maxY - bounds.minY) * CIRCUIT_JSON_SCALE_FACTOR
+      (bounds.maxY - bounds.minY) * kicadSchematicScaleFactor
 
     // Select appropriate paper size based on content
     const paperSize = selectSchematicPaperSize(
@@ -54,10 +56,11 @@ export class CircuitJsonToKicadSchConverter {
         generator: "circuit-json-to-kicad",
         generatorVersion: "0.0.1",
       }),
+      kicadSchematicScaleFactor,
       schematicPaperSize: paperSize,
       c2kMatSch: compose(
         translate(KICAD_CENTER_X, KICAD_CENTER_Y),
-        scale(CIRCUIT_JSON_SCALE_FACTOR, -CIRCUIT_JSON_SCALE_FACTOR),
+        scale(kicadSchematicScaleFactor, -kicadSchematicScaleFactor),
         translate(-center.x, -center.y),
       ),
     }

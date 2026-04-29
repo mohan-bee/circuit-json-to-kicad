@@ -1,4 +1,4 @@
-import type { CircuitJson } from "circuit-json"
+import type { CircuitJson, SchematicComponent } from "circuit-json"
 import type { KicadSch } from "kicadts"
 import {
   SchematicSymbol,
@@ -360,7 +360,7 @@ export class AddSchematicSymbolsStage extends ConverterStage<
    * Get text positions from schematic symbol definition or schematic_text elements
    */
   private getTextPositions(
-    schematicComponent: any,
+    schematicComponent: SchematicComponent,
     placeValueAtNamePosition: boolean,
   ): {
     refTextPos: { x: number; y: number }
@@ -375,6 +375,28 @@ export class AddSchematicSymbolsStage extends ConverterStage<
     const componentHeightMm =
       (schematicComponent.size?.height || 1) * schematicScale
     const referenceAboveBodyY = symbolKicadPos.y - componentHeightMm / 2 - 3
+
+    const isCustomSymbol = this.isCustomSymbolComponent(schematicComponent)
+    if (isCustomSymbol) {
+      const customHeightMm =
+        (schematicComponent.size?.height || 1) *
+        this.ctx.kicadSchematicScaleFactor!
+      const refTextPos = {
+        x: symbolKicadPos.x,
+        y: symbolKicadPos.y - customHeightMm / 2 - 3,
+      }
+      const valTextPos = {
+        x: symbolKicadPos.x,
+        y: symbolKicadPos.y + customHeightMm / 2 + 3,
+      }
+      if (placeValueAtNamePosition) {
+        return {
+          refTextPos,
+          valTextPos: { x: symbolKicadPos.x, y: symbolKicadPos.y },
+        }
+      }
+      return { refTextPos, valTextPos }
+    }
 
     // First check if there are schematic_text elements for this component
     const schematicTexts =
@@ -405,11 +427,16 @@ export class AddSchematicSymbolsStage extends ConverterStage<
 
       const refTextPos = nameTextPos
       const valTextPos = { x: symbolKicadPos.x, y: symbolKicadPos.y + 6 }
-
       return { refTextPos, valTextPos }
     }
 
     const symbolName = schematicComponent.symbol_name
+    if (!symbolName) {
+      return {
+        refTextPos: { x: symbolKicadPos.x, y: referenceAboveBodyY },
+        valTextPos: { x: symbolKicadPos.x, y: symbolKicadPos.y + 6 },
+      }
+    }
     const symbol = (symbols as any)[symbolName]
 
     // Default positions if symbol not found
@@ -465,6 +492,21 @@ export class AddSchematicSymbolsStage extends ConverterStage<
       : { x: symbolKicadPos.x, y: symbolKicadPos.y + 6 }
 
     return { refTextPos, valTextPos }
+  }
+
+  private isCustomSymbolComponent(
+    schematicComponent: SchematicComponent,
+  ): boolean {
+    const componentId = schematicComponent.schematic_component_id
+    if (!componentId) return false
+    return this.ctx.circuitJson.some(
+      (el: any) =>
+        (el.type === "schematic_line" ||
+          el.type === "schematic_circle" ||
+          el.type === "schematic_path") &&
+        el.schematic_component_id === componentId &&
+        el.schematic_symbol_id,
+    )
   }
 
   /**

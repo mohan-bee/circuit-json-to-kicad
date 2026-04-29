@@ -98,9 +98,9 @@ test("custom-symbol06: deduplicates ports with same pin_number", () => {
   const pin1Matches = kicadOutput.match(/\(number "1"/g)
   expect(pin1Matches?.length).toBe(1)
 
-  // Verify the pin is at the FIRST port's position (x=1.5, unscaled for custom symbols)
-  // The library symbol pin should be at (1.5 0) since custom symbols use scale=1
-  expect(kicadOutput).toContain("(at 1.5 0")
+  // Verify the pin is at the FIRST port's position, scaled to KiCad units.
+  // With default schematic scale factor (15), x=1.5 becomes x=22.5.
+  expect(kicadOutput).toContain("(at 22.5 0")
 })
 
 /**
@@ -190,4 +190,61 @@ test("custom-symbol06: keeps ports with different pin_numbers", () => {
   // Both pin numbers should be present
   expect(kicadOutput).toContain('(number "1"')
   expect(kicadOutput).toContain('(number "2"')
+})
+
+test("custom-symbol06: custom symbol pins use default schematic scaling", () => {
+  const circuitJson = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_0",
+      name: "U1",
+      ftype: "simple_chip",
+    },
+    {
+      type: "source_port",
+      source_port_id: "source_port_0",
+      name: "1",
+      pin_number: 1,
+      source_component_id: "source_component_0",
+    },
+    {
+      type: "schematic_component",
+      schematic_component_id: "schematic_component_0",
+      source_component_id: "source_component_0",
+      center: { x: 0, y: 0 },
+      rotation: 0,
+      size: { width: 2, height: 1 },
+    },
+    {
+      type: "schematic_symbol",
+      schematic_symbol_id: "schematic_symbol_0",
+      center: { x: 0, y: 0 },
+      size: { width: 2, height: 1 },
+    },
+    {
+      type: "schematic_port",
+      schematic_port_id: "schematic_port_0",
+      schematic_component_id: "schematic_component_0",
+      source_port_id: "source_port_0",
+      center: { x: 1.5, y: 0 },
+      facing_direction: "right",
+      pin_number: 1,
+    },
+    {
+      type: "schematic_circle",
+      schematic_circle_id: "schematic_circle_0",
+      schematic_component_id: "schematic_component_0",
+      schematic_symbol_id: "schematic_symbol_0",
+      center: { x: 0, y: 0 },
+      radius: 0.5,
+      stroke_width: 0.05,
+      is_filled: true,
+    },
+  ]
+
+  const converter = new CircuitJsonToKicadSchConverter(circuitJson as any)
+  converter.runUntilFinished()
+  const kicadOutput = converter.getOutputString()
+
+  expect(kicadOutput).toContain("(at 22.5 0 180)")
 })

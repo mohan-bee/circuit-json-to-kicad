@@ -51,6 +51,9 @@ export interface ConverterContext {
   kicadSch?: KicadSch
   kicadPcb?: KicadPcb
 
+  /** Scale factor used to convert circuit-json schematic units into KiCad mm */
+  kicadSchematicScaleFactor?: number
+
   /** Circuit JSON to KiCad schematic transformation matrix */
   c2kMatSch?: Matrix
 

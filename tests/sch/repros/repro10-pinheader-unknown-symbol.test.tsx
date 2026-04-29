@@ -18,16 +18,7 @@ test("repro10 pinheader schematic unknown symbol", async () => {
         footprint="pinrow8_rows2"
         doubleRow={true}
         showSilkscreenPinLabels={true}
-        pinLabels={[
-          "VCC",
-          "GND",
-          "SDA",
-          "SCL",
-          "MISO",
-          "MOSI",
-          "SCK",
-          "CS",
-        ]}
+        pinLabels={["VCC", "GND", "SDA", "SCL", "MISO", "MOSI", "SCK", "CS"]}
         pcbX={0}
         pcbY={0}
       />

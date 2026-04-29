@@ -57,6 +57,13 @@ export function getLibraryId(
     return `Custom:${schematicComp.symbol_name}`
   }
 
+  if (
+    sourceComp.ftype === "simple_pin_header" ||
+    sourceComp.ftype === "simple_pinout"
+  ) {
+    return `Device:generic_chip_${schematicComp.source_component_id}`
+  }
+
   // Generate ergonomic name using manufacturer part number or footprint string
   const ergonomicName = getKicadCompatibleComponentName(
     sourceComp,

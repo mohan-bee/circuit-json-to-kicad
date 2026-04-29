@@ -59,7 +59,8 @@ export function getLibraryId(
 
   if (
     sourceComp.ftype === "simple_pin_header" ||
-    sourceComp.ftype === "simple_pinout"
+    sourceComp.ftype === "simple_pinout" ||
+    sourceComp.ftype === "simple_connector"
   ) {
     return `Device:generic_chip_${schematicComp.source_component_id}`
   }

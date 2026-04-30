@@ -28,7 +28,7 @@ test("pcb basics17 copper pour", async () => {
       source_net_id: "source_net_1",
       shape: "rect",
       center: { x: 0, y: 0 },
-      width: 16,
+      width: 15,
       height: 10,
       rotation: 15,
       covered_with_solder_mask: true,

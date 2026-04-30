@@ -8,6 +8,7 @@ test("pcb basics17 copper pour", async () => {
       type: "source_net",
       source_net_id: "source_net_1",
       name: "N1",
+      member_source_group_ids: [],
       subcircuit_connectivity_map_key: "net1",
     },
     {

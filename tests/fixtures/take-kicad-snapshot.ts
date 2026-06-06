@@ -2,6 +2,7 @@ import { $ } from "bun"
 import { tmpdir } from "node:os"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
+import { type KicadPcb, parseKicadPcb, Xy } from "kicadts"
 import sharp from "sharp"
 
 type FilePath = string
@@ -23,86 +24,28 @@ interface Point {
   y: number
 }
 
-const findSexprBlocks = (source: string, token: string): string[] => {
-  const blocks: string[] = []
-  let searchIndex = 0
-  const tokenStart = `(${token}`
-
-  while (searchIndex < source.length) {
-    const start = source.indexOf(tokenStart, searchIndex)
-    if (start === -1) break
-
-    const nextChar = source[start + tokenStart.length]
-    if (nextChar && !/\s|\)/.test(nextChar)) {
-      searchIndex = start + tokenStart.length
-      continue
-    }
-
-    let depth = 0
-    let inString = false
-    let escaped = false
-
-    for (let index = start; index < source.length; index++) {
-      const char = source[index]
-
-      if (inString) {
-        if (escaped) {
-          escaped = false
-        } else if (char === "\\") {
-          escaped = true
-        } else if (char === '"') {
-          inString = false
-        }
-        continue
-      }
-
-      if (char === '"') {
-        inString = true
-      } else if (char === "(") {
-        depth++
-      } else if (char === ")") {
-        depth--
-        if (depth === 0) {
-          blocks.push(source.slice(start, index + 1))
-          searchIndex = index + 1
-          break
-        }
-      }
-    }
-
-    if (searchIndex <= start) break
-  }
-
-  return blocks
-}
-
-const parsePointMatches = (source: string, regex: RegExp): Point[] =>
-  [...source.matchAll(regex)].map((match) => ({
-    x: Number(match[1]),
-    y: Number(match[2]),
-  }))
-
 const formatSvgNumber = (value: number): string =>
   Number(value.toFixed(6)).toString()
 
-const getKeepoutZonePolygons = (kicadPcbContent: string): Point[][] =>
-  findSexprBlocks(kicadPcbContent, "zone")
-    .filter((zoneBlock) => zoneBlock.includes("(keepout"))
-    .map((zoneBlock) =>
-      parsePointMatches(
-        zoneBlock,
-        /\(xy\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\)/g,
+const getKeepoutZonePolygons = (kicadPcb: KicadPcb): Point[][] =>
+  kicadPcb.zones
+    .filter((zone) => zone.keepout)
+    .flatMap((zone) =>
+      zone.polygons.map(
+        (polygon) =>
+          polygon.pts?.points
+            .filter((point): point is Xy => point instanceof Xy)
+            .map((point) => ({ x: point.x, y: point.y })) ?? [],
       ),
     )
     .filter((points) => points.length >= 3)
 
-const getEdgeCutPoints = (kicadPcbContent: string): Point[] =>
-  findSexprBlocks(kicadPcbContent, "gr_line")
-    .filter((block) => block.includes("Edge.Cuts"))
-    .flatMap((block) =>
-      parsePointMatches(
-        block,
-        /\((?:start|end)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\)/g,
+const getEdgeCutPoints = (kicadPcb: KicadPcb): Point[] =>
+  kicadPcb.graphicLines
+    .filter((line) => line.layer?.names.includes("Edge.Cuts"))
+    .flatMap((line) =>
+      [line.startPoint, line.endPoint].filter((point): point is Point =>
+        Boolean(point),
       ),
     )
 
@@ -112,13 +55,11 @@ export const addPcbKeepoutOverlaysToSvg = (
 ): string => {
   if (!kicadPcbContent) return svg
 
-  const keepoutPolygons = getKeepoutZonePolygons(kicadPcbContent)
+  const kicadPcb = parseKicadPcb(kicadPcbContent)
+  const keepoutPolygons = getKeepoutZonePolygons(kicadPcb)
   if (keepoutPolygons.length === 0) return svg
 
-  const bboxPoints = [
-    ...getEdgeCutPoints(kicadPcbContent),
-    ...keepoutPolygons.flat(),
-  ]
+  const bboxPoints = [...getEdgeCutPoints(kicadPcb), ...keepoutPolygons.flat()]
   if (bboxPoints.length === 0) return svg
 
   const minX = Math.min(...bboxPoints.map((point) => point.x))

@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test"
 import { join } from "node:path"
 import {
+  addPcbKeepoutOverlaysToSvg,
   normalizePcbSvgForSnapshot,
   takeKicadSnapshot,
 } from "./take-kicad-snapshot"
@@ -28,6 +29,56 @@ L15.0000 6.0000" />
   )
   expect(normalizedSvg).toContain("stroke:pink; stroke-width:2.0000;")
   expect(normalizedSvg).toContain('<circle cx="5.0000" cy="45.0000"')
+})
+
+test("addPcbKeepoutOverlaysToSvg draws keepout zone polygons", () => {
+  const svg = '<svg viewBox="0 0 20 20"></svg>'
+  const kicadPcb = `
+(kicad_pcb
+  (footprint "Test:Pad"
+    (zone_connect 2)
+  )
+  (gr_line
+    (start 95 105)
+    (end 105 105)
+    (layer Edge.Cuts)
+  )
+  (gr_line
+    (start 105 105)
+    (end 105 95)
+    (layer Edge.Cuts)
+  )
+  (zone
+    (net 0)
+    (net_name "")
+    (layer F.Cu)
+    (keepout
+      (tracks not_allowed)
+      (vias not_allowed)
+      (pads not_allowed)
+      (copperpour not_allowed)
+      (footprints not_allowed)
+    )
+    (polygon
+      (pts
+        (xy 113.2 102.5)
+        (xy 113.2 97.5)
+        (xy 110.8 97.5)
+        (xy 110.8 102.5)
+      )
+    )
+  )
+)
+`
+
+  const svgWithOverlay = addPcbKeepoutOverlaysToSvg(svg, kicadPcb)
+
+  expect(svgWithOverlay).toContain('data-cj2k-keepout-overlays="true"')
+  expect(svgWithOverlay).toContain("cj2k-keepout-hatch")
+  expect(svgWithOverlay).toContain(
+    '<polygon points="18.25,7.55 18.25,2.55 15.85,2.55 15.85,7.55" />',
+  )
+  expect(svgWithOverlay).not.toContain("zone_connect")
 })
 
 test("takeKicadSnapshot - schematic export", async () => {
